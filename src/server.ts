@@ -127,8 +127,20 @@ app.get('/payment/success', async (req, res) => {
         <div class="icon">✅</div>
         <h1>Payment Successful!</h1>
         <p>Your credits have been added to your account.<br>You can close this tab and reopen the extension.</p>
-        <button class="close-btn" onclick="window.close()">Close Tab</button>
+        <button class="close-btn" onclick="closeTab()">Close Tab</button>
+        <p class="hint" id="hint" style="display:none; margin-top: 16px; font-size: 14px;">
+          Press <kbd style="background:#333; padding:2px 8px; border-radius:4px;">Ctrl+W</kbd> (or <kbd style="background:#333; padding:2px 8px; border-radius:4px;">Cmd+W</kbd> on Mac) to close this tab
+        </p>
       </div>
+      <script>
+        function closeTab() {
+          window.close();
+          // If window.close() didn't work (browser blocked it), show hint
+          setTimeout(() => {
+            document.getElementById('hint').style.display = 'block';
+          }, 100);
+        }
+      </script>
     </body>
     </html>
   `);
@@ -186,8 +198,19 @@ app.get('/payment/cancel', (_req, res) => {
         <div class="icon">❌</div>
         <h1>Payment Cancelled</h1>
         <p>No charges were made.<br>You can close this tab and try again in the extension.</p>
-        <button class="close-btn" onclick="window.close()">Close Tab</button>
+        <button class="close-btn" onclick="closeTab()">Close Tab</button>
+        <p class="hint" id="hint" style="display:none; margin-top: 16px; font-size: 14px;">
+          Press <kbd style="background:#333; padding:2px 8px; border-radius:4px;">Ctrl+W</kbd> (or <kbd style="background:#333; padding:2px 8px; border-radius:4px;">Cmd+W</kbd> on Mac) to close this tab
+        </p>
       </div>
+      <script>
+        function closeTab() {
+          window.close();
+          setTimeout(() => {
+            document.getElementById('hint').style.display = 'block';
+          }, 100);
+        }
+      </script>
     </body>
     </html>
   `);
