@@ -88,6 +88,25 @@ CREATE POLICY "Users can view own transactions" ON transactions
   FOR SELECT USING (auth.uid() = user_id);
 
 -- ============================================
+-- DEVICE FINGERPRINTS TABLE
+-- ============================================
+-- Tracks devices that have claimed the signup bonus
+-- Users can create unlimited accounts but only get bonus once per device
+CREATE TABLE IF NOT EXISTS device_fingerprints (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  device_id TEXT NOT NULL UNIQUE,
+  user_id UUID REFERENCES user_profiles(id) ON DELETE SET NULL,
+  claimed_bonus BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Index for fast device lookups
+CREATE INDEX IF NOT EXISTS idx_device_fingerprints_device_id ON device_fingerprints(device_id);
+
+-- Grant service role permissions
+GRANT INSERT, SELECT ON device_fingerprints TO service_role;
+
+-- ============================================
 -- FUNCTION: Create profile on signup
 -- ============================================
 -- Automatically creates a user_profile when someone signs up

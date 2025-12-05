@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express';
-import { supabase, getOrCreateUserProfile, getUserProfile, isSupabaseAvailable } from '../lib/supabase.js';
+import { supabase, getOrCreateUserProfile, getUserProfile, isSupabaseAvailable, hasDeviceClaimedBonus, recordDeviceBonus } from '../lib/supabase.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
@@ -27,7 +27,7 @@ function requireSupabase(req: any, res: any, next: any) {
  * Create a new account with email/password
  */
 router.post('/signup', requireSupabase, async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, device_id } = req.body;
   
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password required' });
@@ -38,6 +38,9 @@ router.post('/signup', requireSupabase, async (req, res) => {
   }
   
   try {
+    // Check if device already claimed bonus
+    const deviceAlreadyClaimed = device_id ? await hasDeviceClaimedBonus(device_id) : false;
+    
     const { data, error } = await supabase!.auth.signUp({
       email,
       password,
@@ -52,10 +55,19 @@ router.post('/signup', requireSupabase, async (req, res) => {
       return res.status(400).json({ error: 'Failed to create account' });
     }
     
-    // Create user profile with $1 bonus
-    const profile = await getOrCreateUserProfile(data.user.id, email);
+    // Create user profile - only give bonus if device hasn't claimed before
+    const giveBonus = !deviceAlreadyClaimed;
+    const profile = await getOrCreateUserProfile(data.user.id, email, giveBonus);
     
-    console.log(`[Auth] New signup: ${email}`);
+    // Record this device as having claimed the bonus (if applicable)
+    if (giveBonus && device_id) {
+      await recordDeviceBonus(device_id, data.user.id);
+      console.log(`[Auth] New signup with bonus: ${email} (device: ${device_id.substring(0, 8)}...)`);
+    } else if (device_id) {
+      console.log(`[Auth] New signup (no bonus - device already used): ${email}`);
+    } else {
+      console.log(`[Auth] New signup: ${email}`);
+    }
     
     return res.json({
       message: 'Account created successfully',
@@ -65,6 +77,7 @@ router.post('/signup', requireSupabase, async (req, res) => {
       },
       session: data.session,
       profile,
+      bonus_awarded: giveBonus,
     });
   } catch (error) {
     console.error('[Auth] Signup error:', error);

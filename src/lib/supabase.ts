@@ -96,22 +96,24 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 }
 
 /**
- * Create user profile with signup bonus
+ * Create user profile with optional signup bonus
+ * @param giveBonus - If false, creates profile with $0 balance (device already claimed)
  */
-export async function createUserProfile(userId: string, email: string): Promise<UserProfile | null> {
+export async function createUserProfile(userId: string, email: string, giveBonus: boolean = true): Promise<UserProfile | null> {
   if (!supabaseAdmin) {
     console.warn('[Supabase] Not configured - cannot create user profile');
     return null;
   }
   
   const SIGNUP_BONUS = 0.24; // $0.24 free credit
+  const balance = giveBonus ? SIGNUP_BONUS : 0;
   
   const { data, error } = await supabaseAdmin
     .from('user_profiles')
     .insert({
       id: userId,
       email,
-      balance: SIGNUP_BONUS,
+      balance,
     })
     .select()
     .single();
@@ -121,21 +123,26 @@ export async function createUserProfile(userId: string, email: string): Promise<
     return null;
   }
   
-  // Log the signup bonus
-  await logTransaction(userId, 'signup_bonus', SIGNUP_BONUS, 'Welcome bonus - $0.24 free credit');
+  // Log the signup bonus only if awarded
+  if (giveBonus) {
+    await logTransaction(userId, 'signup_bonus', SIGNUP_BONUS, 'Welcome bonus - $0.24 free credit');
+    console.log(`[Supabase] Created profile for ${email} with $${SIGNUP_BONUS} bonus`);
+  } else {
+    console.log(`[Supabase] Created profile for ${email} with $0 (bonus already claimed on this device)`);
+  }
   
-  console.log(`[Supabase] Created profile for ${email} with $${SIGNUP_BONUS} bonus`);
   return data;
 }
 
 /**
  * Get or create user profile
+ * @param giveBonus - If creating, whether to give signup bonus
  */
-export async function getOrCreateUserProfile(userId: string, email: string): Promise<UserProfile | null> {
+export async function getOrCreateUserProfile(userId: string, email: string, giveBonus: boolean = true): Promise<UserProfile | null> {
   let profile = await getUserProfile(userId);
   
   if (!profile) {
-    profile = await createUserProfile(userId, email);
+    profile = await createUserProfile(userId, email, giveBonus);
   }
   
   return profile;
@@ -312,6 +319,52 @@ export async function getUserTransactions(userId: string, limit: number = 50): P
   }
   
   return data || [];
+}
+
+// ============ Device Fingerprint Tracking ============
+
+/**
+ * Check if a device has already claimed the signup bonus
+ */
+export async function hasDeviceClaimedBonus(deviceId: string): Promise<boolean> {
+  if (!supabaseAdmin || !deviceId || deviceId === 'unknown-device') {
+    return false; // Give bonus if we can't verify
+  }
+  
+  const { data, error } = await supabaseAdmin
+    .from('device_fingerprints')
+    .select('id')
+    .eq('device_id', deviceId)
+    .eq('claimed_bonus', true)
+    .single();
+  
+  if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+    console.error('[Supabase] Error checking device:', error);
+  }
+  
+  return !!data;
+}
+
+/**
+ * Record that a device has claimed the signup bonus
+ */
+export async function recordDeviceBonus(deviceId: string, userId: string): Promise<void> {
+  if (!supabaseAdmin || !deviceId || deviceId === 'unknown-device') {
+    return;
+  }
+  
+  const { error } = await supabaseAdmin
+    .from('device_fingerprints')
+    .insert({
+      device_id: deviceId,
+      user_id: userId,
+      claimed_bonus: true,
+    });
+  
+  if (error) {
+    // Might fail if device already exists, that's OK
+    console.log('[Supabase] Device fingerprint insert:', error.code === '23505' ? 'already exists' : error);
+  }
 }
 
 // ============ Auth Helpers ============
