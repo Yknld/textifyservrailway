@@ -116,7 +116,7 @@ router.post('/analyze-image', requireAuth, upload.single('file'), async (req, re
     console.log(`[Vision] Processing file: ${req.file.originalname} (${req.file.mimetype}, ${Math.round(req.file.size / 1024)}KB) for user ${req.user!.email}`);
     
     // Preprocess the image
-    const { base64, width, height, processedBuffer } = await preprocessImageToBase64(req.file.buffer);
+    const { base64, width, height } = await preprocessImageToBase64(req.file.buffer);
     
     // Analyze with GPT-4o Vision
     const { text, usage } = await analyzeImageWithGPT({
@@ -146,19 +146,13 @@ router.post('/analyze-image', requireAuth, upload.single('file'), async (req, re
       'image'
     );
     
-    // Include processed image for download (as base64)
-    const processedImageBase64 = processedBuffer 
-      ? `data:image/webp;base64,${processedBuffer.toString('base64')}`
-      : undefined;
-    
     // Build response
-    const response: VisionAnalyzeResponse & { processedImage?: string } = {
+    const response: VisionAnalyzeResponse = {
       text,
       usage,
       image: { width, height },
       cost: cost.chargedCost,
       balance: newBalance,
-      processedImage: processedImageBase64,
     };
     
     console.log(`[Vision] Success! Extracted ${text.length} chars, cost: $${cost.chargedCost.toFixed(4)}, new balance: $${newBalance.toFixed(4)}`);

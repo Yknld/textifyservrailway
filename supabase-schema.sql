@@ -13,7 +13,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS user_profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
-  balance DECIMAL(10, 6) NOT NULL DEFAULT 1.00, -- $1 signup bonus
+  balance DECIMAL(10, 6) NOT NULL DEFAULT 0.24, -- $0.24 signup bonus
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -114,12 +114,12 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.user_profiles (id, email, balance)
-  VALUES (NEW.id, NEW.email, 1.00)
+  VALUES (NEW.id, NEW.email, 0.24)
   ON CONFLICT (id) DO NOTHING;
   
   -- Log signup bonus
   INSERT INTO public.transactions (user_id, type, amount, description)
-  VALUES (NEW.id, 'signup_bonus', 1.00, 'Welcome bonus - $1 free credit');
+  VALUES (NEW.id, 'signup_bonus', 0.24, 'Welcome bonus - $0.24 free credit');
   
   RETURN NEW;
 END;
