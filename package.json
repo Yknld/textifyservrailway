@@ -1,0 +1,35 @@
+{
+  "name": "studyocr-backend",
+  "version": "1.0.0",
+  "description": "Backend service for StudyOCR - OCR via GPT-4o Vision API",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.86.2",
+    "adm-zip": "^0.5.16",
+    "chart.js": "^4.5.1",
+    "chartjs-node-canvas": "^5.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1",
+    "openai": "^4.24.1",
+    "pdf-to-img": "^4.1.0",
+    "sharp": "^0.33.1",
+    "stripe": "^20.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.7",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.10.6",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  }
+}
